@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "lua-protocol",
+    "lua-worker",
+    "lua-host",
+    "lua-server",
+]
+resolver = "2"

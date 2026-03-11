@@ -1,0 +1,24 @@
+[package]
+name = "lua-worker"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "lua-worker"
+path = "src/main.rs"
+
+[dependencies]
+lua-protocol = { path = "../lua-protocol" }
+anyhow = "1"
+libc = "0.2"
+tokio = { version = "1", features = ["rt", "macros", "net", "io-util", "process"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+bytes = "1"
+futures = { version = "0.3", default-features = false, features = ["std"] }
+cap-std = "3"
+mlua = { version = "0.11.6", features = ["lua54", "async", "vendored"] }
+rmp-serde = "1"
+serde = { version = "1", features = ["derive"] }
+
+[dependencies.tempfile]
+version = "3"
