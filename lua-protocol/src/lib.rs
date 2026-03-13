@@ -9,7 +9,7 @@ pub enum LuaValue {
     Integer(i64),
     Float(f64),
     String(Vec<u8>),
-    // fix this is a hack (design): pair representation loses array vs map distinction.
+    // fix this is a hack (design): A Lua sequence and a Lua map with integer keys are indistinguishable.
     Table(Vec<(LuaValue, LuaValue)>),
 }
 

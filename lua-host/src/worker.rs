@@ -110,12 +110,13 @@ impl WorkerRegistry {
         let child_fd = child_stream.as_raw_fd();
 
         let mut cmd = Command::new(&self.worker_bin);
-        // fix this is a hack: passing fd as argv string; SCM_RIGHTS or env would be cleaner.
+
+        // TODO: use env var instead of argv for fd passing. Works fine on Linux; SCM_RIGHTS or env would be cleaner. Not a correctness issue.
+>>>>>>> 6f354c4 (documentation)
         cmd.arg(child_fd.to_string()).arg(sandbox_dir.as_os_str());
 
         unsafe {
-            // Rust sets O_CLOEXEC on all fds by default
-            // clear so child_fd survives exec().
+            // Standard Unix pattern for passing fd across exec. Rust sets O_CLOEXEC by default; clear it so child_fd survives exec().
             cmd.pre_exec(move || {
                 let flags = libc::fcntl(child_fd, libc::F_GETFD);
                 if flags == -1 {
