@@ -23,6 +23,7 @@ impl Vm {
         sandbox_io::install(&lua, sandbox_dir)?;
         let gas_counter = limits::install(&lua, limits::DEFAULT_MEMORY, limits::DEFAULT_GAS)?;
 
+        // fix this is a hack (design): Mutex blocks async task; print-heavy scripts can stall.
         let console: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
         let console_ref = Arc::clone(&console);
         lua.globals().set(

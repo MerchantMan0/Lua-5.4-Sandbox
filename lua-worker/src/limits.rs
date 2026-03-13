@@ -4,6 +4,7 @@ use std::sync::Arc;
 use mlua::{Debug, HookTriggers, Lua, VmState};
 
 const GAS_CHUNK: u32 = 1_000;
+// fix this is a hack: magic string overloads RuntimeError for gas detection.
 // Lua code can not generate null bytes making this impossible to produce in lua.
 const GAS_MARKER: &str = "\x00gas_exceeded";
 
@@ -44,6 +45,7 @@ pub fn reset(counter: &AtomicI64, gas_budget: i64) {
     counter.store(chunks(gas_budget), Ordering::Relaxed);
 }
 
+// fix this is a hack (design): quantized by GAS_CHUNK, reported value is approximate.
 pub fn gas_remaining(counter: &AtomicI64) -> i64 {
     counter.load(Ordering::Relaxed).max(0) * GAS_CHUNK as i64
 }
@@ -64,7 +66,7 @@ fn make_hook(
     }
 }
 
-// ngl, this is a hack. TODO: fix this.
+// fix this is a hack: monkey-patches coroutine.resume so gas is checked across yields (hook doesn't fire).
 fn wrap_coroutine_resume(lua: &Lua, counter: Arc<AtomicI64>) -> mlua::Result<()> {
     let coroutine: mlua::Table = lua.globals().get("coroutine")?;
 
@@ -106,6 +108,7 @@ fn wrap_coroutine_resume(lua: &Lua, counter: Arc<AtomicI64>) -> mlua::Result<()>
     Ok(())
 }
 
+// fix this is a hack: monkey-patches pcall/xpcall to check gas after protected call returns.
 fn wrap_protected_call(lua: &Lua, name: &'static str, counter: Arc<AtomicI64>) -> mlua::Result<()> {
     let orig: mlua::Function = lua.globals().get(name)?;
 

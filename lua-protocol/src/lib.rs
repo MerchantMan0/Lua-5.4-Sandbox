@@ -9,6 +9,7 @@ pub enum LuaValue {
     Integer(i64),
     Float(f64),
     String(Vec<u8>),
+    // fix this is a hack (design): pair representation loses array vs map distinction.
     Table(Vec<(LuaValue, LuaValue)>),
 }
 
@@ -35,6 +36,7 @@ pub enum Request {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Response {
+    // fix this is a hack (design): single struct for all Ok cases forces fake gas/memory for Ping/Shutdown.
     Ok {
         values: Vec<LuaValue>,
         console: Vec<String>,

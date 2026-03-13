@@ -62,6 +62,7 @@ pub fn mlua_err_to_protocol(err: mlua::Error) -> LuaError {
         mlua::Error::MemoryError(_) => LuaError::MemoryExceeded,
         mlua::Error::SyntaxError { message, .. } => LuaError::Syntax(message.clone()),
         mlua::Error::RuntimeError(msg) if limits::is_gas_marker(msg) => LuaError::GasExceeded,
+        // fix this is a hack: mlua RuntimeError has no traceback; only CallbackError provides it.
         mlua::Error::RuntimeError(msg) => LuaError::Runtime {
             message: msg.clone(),
             traceback: None,

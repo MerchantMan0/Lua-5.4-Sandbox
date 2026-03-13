@@ -64,6 +64,7 @@ fn lua_value_to_json(v: LuaValue) -> Value {
         LuaValue::Bool(b) => json!(b),
         LuaValue::Integer(i) => json!(i),
         LuaValue::Float(f) => json!(f),
+        // fix this is a hack: from_utf8_lossy replaces invalid UTF-8 with replacement chars.
         LuaValue::String(bytes) => json!(String::from_utf8_lossy(&bytes).into_owned()),
         LuaValue::Table(pairs) => lua_table_to_json(pairs),
     }
@@ -84,6 +85,7 @@ fn lua_table_to_json(pairs: Vec<(LuaValue, LuaValue)>) -> Value {
                 .into_iter()
                 .map(|(k, v)| {
                     let key = match k {
+                        // fix this is a hack: from_utf8_lossy replaces invalid UTF-8 with replacement chars.
                         LuaValue::String(b) => String::from_utf8_lossy(&b).into_owned(),
                         _ => unreachable!(),
                     };
@@ -93,6 +95,7 @@ fn lua_table_to_json(pairs: Vec<(LuaValue, LuaValue)>) -> Value {
         );
     }
 
+    // fix this is a hack (design): encoding as [[k,v],...] loses object semantics for mixed tables.
     // Mixed key table pairs
     Value::Array(
         pairs
@@ -110,6 +113,7 @@ fn json_to_lua_value(v: Value) -> LuaValue {
             if let Some(i) = n.as_i64() {
                 LuaValue::Integer(i)
             } else {
+                // fix this is a hack: non-representable JSON numbers silently become 0.
                 LuaValue::Float(n.as_f64().unwrap_or(0.0))
             }
         }
@@ -173,6 +177,7 @@ pub struct EvalBody {
     script: String,
 }
 
+// fix this is a hack (design): drop-based shutdown + explicit disarm to avoid double shutdown on success path.
 // shuts down the ephemeral eval worker on drop
 // guards against early returns and panics
 struct EvalGuard {
@@ -248,6 +253,7 @@ pub async fn health_worker(
     Ok(Json(json!({ "status": "ok" })))
 }
 
+// fix this is a hack (design): spawns full worker process per one-shot eval instead of dedicated pool.
 pub async fn eval(
     State(state): State<AppState>,
     Json(body): Json<EvalBody>,

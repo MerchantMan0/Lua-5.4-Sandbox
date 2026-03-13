@@ -35,6 +35,7 @@ type Inflight = (Request, oneshot::Sender<Result<Response, WorkerError>>);
 #[derive(Clone)]
 pub struct WorkerHandle {
     tx: mpsc::Sender<Inflight>,
+    // fix this is a hack (design): blocks concurrent requests instead of queuing.
     // Semaphore(1) enforces one in-flight request at a time per worker.
     // planned to be a queue and is partially implemented.
     in_flight: Arc<Semaphore>,
@@ -109,6 +110,7 @@ impl WorkerRegistry {
         let child_fd = child_stream.as_raw_fd();
 
         let mut cmd = Command::new(&self.worker_bin);
+        // fix this is a hack: passing fd as argv string; SCM_RIGHTS or env would be cleaner.
         cmd.arg(child_fd.to_string()).arg(sandbox_dir.as_os_str());
 
         unsafe {
@@ -133,6 +135,7 @@ impl WorkerRegistry {
         // close the parent's copy so EOF is detectable.
         drop(child_stream);
 
+        // fix this is a hack (design): buffer size 1 combined with Semaphore(1) limits throughput.
         let (tx, rx) = mpsc::channel::<Inflight>(1);
         let id = Uuid::new_v4();
         let handle = WorkerHandle { tx, in_flight: Arc::new(Semaphore::new(1)) };
@@ -218,9 +221,9 @@ async fn worker_task(
         }
 
         if is_shutdown {
+            // fix this is a hack: worker exits without response; dummy Ok satisfies API.
             // No response is expected from the worker
             // responds to the server with a dummy Ok to satisfy the API.
-            // TODO: this is a hack and should be removed.
             let _ = reply_tx.send(Ok(Response::Ok { values: vec![], console: vec![], gas_remaining: 0, memory_used: 0 }));
             break;
         }

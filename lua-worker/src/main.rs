@@ -29,6 +29,7 @@ async fn main() {
     local.run_until(run(stream, sandbox_dir)).await;
 }
 
+// fix this is a hack: from_raw_fd takes ownership; parent must have passed valid fd.
 fn connect_fd(fd: i32) -> UnixStream {
     let std_stream = unsafe { std::os::unix::net::UnixStream::from_raw_fd(fd) };
     std_stream.set_nonblocking(true).expect("set_nonblocking");
@@ -67,6 +68,7 @@ async fn run(stream: UnixStream, sandbox_dir: String) {
         match request {
             Request::Shutdown => break,
             Request::Ping => {
+                // fix this is a hack: Response::Ok requires gas/memory; Ping returns fake zeros.
                 let bytes = rmp_serde::to_vec_named(&Response::Ok {
                     values: vec![],
                     console: vec![],
