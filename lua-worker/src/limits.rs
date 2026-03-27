@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use mlua::{Debug, HookTriggers, Lua, VmState};
 
-const GAS_CHUNK: u32 = 1_000;
+const GAS_CHUNK: u32 = 50;
 // fix this is a hack: magic string overloads RuntimeError for gas detection.
 // Lua code can not generate null bytes making this impossible to produce in lua.
 const GAS_MARKER: &str = "\x00gas_exceeded";
@@ -39,10 +39,6 @@ pub fn install(lua: &Lua, memory_limit: usize, gas_budget: i64) -> mlua::Result<
     wrap_protected_call(lua, "pcall", Arc::clone(&counter))?;
     wrap_protected_call(lua, "xpcall", Arc::clone(&counter))?;
     Ok(counter)
-}
-
-pub fn reset(counter: &AtomicI64, gas_budget: i64) {
-    counter.store(chunks(gas_budget), Ordering::Relaxed);
 }
 
 // fix this is a hack (design): quantized by GAS_CHUNK, reported value is approximate.

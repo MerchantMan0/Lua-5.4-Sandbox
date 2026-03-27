@@ -112,7 +112,6 @@ impl WorkerRegistry {
         let mut cmd = Command::new(&self.worker_bin);
 
         // TODO: use env var instead of argv for fd passing. Works fine on Linux; SCM_RIGHTS or env would be cleaner. Not a correctness issue.
->>>>>>> 6f354c4 (documentation)
         cmd.arg(child_fd.to_string()).arg(sandbox_dir.as_os_str());
 
         unsafe {

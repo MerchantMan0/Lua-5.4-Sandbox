@@ -49,7 +49,6 @@ impl Vm {
     }
 
     pub async fn exec(&self, script: &str) -> Response {
-        limits::reset(&self.gas_counter, limits::DEFAULT_GAS);
         self.console.lock().unwrap().clear();
 
         let func = match self.lua.load(script).set_name("input").into_function() {
@@ -60,7 +59,6 @@ impl Vm {
     }
 
     pub async fn call(&self, function: &str, args: &[LuaValue]) -> Response {
-        limits::reset(&self.gas_counter, limits::DEFAULT_GAS);
         self.console.lock().unwrap().clear();
 
         let func: mlua::Function = match self.lua.globals().get(function) {
