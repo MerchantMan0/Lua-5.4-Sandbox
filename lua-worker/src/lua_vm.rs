@@ -10,6 +10,8 @@ pub struct Vm {
     lua: Lua,
     gas_counter: Arc<AtomicI64>,
     console: Arc<Mutex<Vec<String>>>,
+    /// `used_memory()` after init (stdlib, sandbox, hooks, print), with GC paused for a stable read.
+    memory_baseline: usize,
 }
 
 impl Vm {
@@ -45,7 +47,11 @@ impl Vm {
             })?,
         )?;
 
-        Ok(Self { lua, gas_counter, console })
+        lua.gc_stop();
+        let memory_baseline = lua.used_memory();
+        lua.gc_restart();
+
+        Ok(Self { lua, gas_counter, console, memory_baseline })
     }
 
     pub async fn exec(&self, script: &str) -> Response {
@@ -102,7 +108,10 @@ impl Vm {
                         values,
                         console,
                         gas_remaining: limits::gas_remaining(&self.gas_counter),
-                        memory_used: self.lua.used_memory(),
+                        memory_used: self
+                            .lua
+                            .used_memory()
+                            .saturating_sub(self.memory_baseline),
                     }
                 }
                 Err(e) => Response::Error(e),
