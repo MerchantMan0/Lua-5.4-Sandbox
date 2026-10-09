@@ -1,5 +1,6 @@
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
+use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -107,33 +108,16 @@ impl WorkerRegistry {
         let (host_stream, child_stream) =
             UnixStream::pair().context("create socketpair")?;
 
-        let child_fd = child_stream.as_raw_fd();
+        let std_stream = child_stream
+            .into_std()
+            .context("convert worker socket")?;
+        let stdin_file = unsafe { std::fs::File::from_raw_fd(std_stream.into_raw_fd()) };
 
         let mut cmd = Command::new(&self.worker_bin);
-
-        // TODO: use env var instead of argv for fd passing. Works fine on Linux; SCM_RIGHTS or env would be cleaner. Not a correctness issue.
-        cmd.arg(child_fd.to_string()).arg(sandbox_dir.as_os_str());
-
-        unsafe {
-            // Standard Unix pattern for passing fd across exec. Rust sets O_CLOEXEC by default; clear it so child_fd survives exec().
-            cmd.pre_exec(move || {
-                let flags = libc::fcntl(child_fd, libc::F_GETFD);
-                if flags == -1 {
-                    return Err(std::io::Error::last_os_error());
-                }
-                let ret = libc::fcntl(child_fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC);
-                if ret == -1 {
-                    return Err(std::io::Error::last_os_error());
-                }
-                Ok(())
-            });
-        }
+        cmd.arg("0").arg(sandbox_dir.as_os_str());
+        cmd.stdin(Stdio::from(stdin_file));
 
         let child = cmd.spawn().context("spawn lua-worker")?;
-
-        // The child inherited the fd via pre_exec.
-        // close the parent's copy so EOF is detectable.
-        drop(child_stream);
 
         // fix this is a hack (design): buffer size 1 combined with Semaphore(1) limits throughput.
         let (tx, rx) = mpsc::channel::<Inflight>(1);
